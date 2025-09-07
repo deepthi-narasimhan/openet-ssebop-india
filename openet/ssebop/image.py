@@ -827,6 +827,10 @@ class Image:
             cloudmask_args['cloud_score_flag'] = False
         if 'cloud_score_pct' not in cloudmask_args.keys():
             cloudmask_args['cloud_score_pct'] = 100
+        if 'buffer_flag' not in cloudmask_args.keys():
+            cloudmask_args['buffer_flag'] = False
+        if 'buffer_pixels' not in cloudmask_args.keys():
+            cloudmask_args['buffer_pixels'] = 10
         if 'filter_flag' not in cloudmask_args.keys():
             cloudmask_args['filter_flag'] = False
         if 'saturated_flag' not in cloudmask_args.keys():
