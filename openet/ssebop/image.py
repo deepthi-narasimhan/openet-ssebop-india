@@ -892,6 +892,7 @@ class Image:
         high_ndvi_threshold = 0.9
 
         # max pixels argument for .reduceResolution()
+        m_pixels_large = 20**2
         m_pixels_fine = 48  # We use 48 because for 240m-> (8**2) 64 pixels is not necessary and EECU is saved.
         m_pixels_coarse = (20**2)/2  # Doing every pixel would be (20**2) but half is probably fine.
 
@@ -911,6 +912,8 @@ class Image:
 
         # Mask ndvi for water
         ndvi_masked = ndvi.updateMask(not_water_mask)
+        # for ray d.
+        self.ndiv_masked_water_negative = ndvi_masked
 
         # Mask LST in the same way
         lst_masked = lst.updateMask(not_water_mask)
@@ -921,13 +924,13 @@ class Image:
         # Fine resolution Tcorr for areas that are natively high NDVI and hot-dry landcovers (not ag)
         self.ndvi_fine_wmasked = (
             ndvi_masked
-            .reduceResolution(ee.Reducer.mean(), True, m_pixels_fine)
+            .reduceResolution(ee.Reducer.mean(), False, m_pixels_large)
             .reproject(self.crs, fine_transform)
             .updateMask(1)
         )
         self.lst_fine_wmasked = (
             lst_masked
-            .reduceResolution(ee.Reducer.mean(), True, m_pixels_fine)
+            .reduceResolution(ee.Reducer.mean(), False, m_pixels_large)
             .reproject(self.crs, fine_transform)
             .updateMask(1)
         )
@@ -942,7 +945,7 @@ class Image:
         self.coarse_masked_ndvi = (
             self.ndvi_fine_wmasked
             .updateMask(ndvi_masked.gte(0.4).And(self.ag_landcover_mask))
-            .reduceResolution(ee.Reducer.mean(), True, m_pixels_coarse)
+            .reduceResolution(ee.Reducer.mean(), False, m_pixels_large)
             .reproject(self.crs, self.coarse_transform)
         )
 
@@ -950,7 +953,7 @@ class Image:
         self.lst_coarse_wmasked_high_ndvi = (
             self.lst_fine_wmasked
             .updateMask(ndvi_masked.gte(0.4).And(self.ag_landcover_mask))
-            .reduceResolution(ee.Reducer.mean(), True, m_pixels_coarse)
+            .reduceResolution(ee.Reducer.mean(), False, m_pixels_large)
             .reproject(self.crs, self.coarse_transform)
         )
 
@@ -983,7 +986,7 @@ class Image:
 
         self.Tc_supercoarse_high_ndvi_scalar = (
             self.Tc_fine
-            .reduceRegion(ee.Reducer.mean(), self.Tc_fine.geometry(), scale=240, bestEffort=True)
+            .reduceRegion(ee.Reducer.mean(), self.Tc_fine.geometry(), scale=240, bestEffort=False)
             .get('lst')
         )
 
