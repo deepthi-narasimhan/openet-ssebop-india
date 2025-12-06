@@ -147,7 +147,12 @@ def dt(tmax, tmin, elev, doy, lat=None, rs=None, ea=None):
 # TODO: Decide if using the interpolated instantaneous is the right/best approach
 #   We could use the closest hour in time, an average of a few hours
 #   or just switch to using the raw daily or bias corrected assets
-def etf_grass_type_adjust(etf, src_coll_id, time_start, resample_method='bilinear'):
+def etf_grass_type_adjust(
+        etf,
+        src_coll_id,
+        time_start,
+        resample_method='bilinear',
+):
     """"Convert ET fraction from an alfalfa reference to grass reference
 
     Parameters
@@ -169,6 +174,7 @@ def etf_grass_type_adjust(etf, src_coll_id, time_start, resample_method='bilinea
     hourly_et_reference_sources = [
         'NASA/NLDAS/FORA0125_H002',
         'ECMWF/ERA5_LAND/HOURLY',
+        'projects/openet/assets/meteorology/urma/hawaii/hourly',
     ]
     if src_coll_id not in hourly_et_reference_sources:
         raise ValueError(f'unsupported hourly ET reference source: {src_coll_id}')
@@ -205,16 +211,16 @@ def etf_grass_type_adjust(etf, src_coll_id, time_start, resample_method='bilinea
             openet.refetgee.Hourly.nldas(interp_img).etr
             .divide(openet.refetgee.Hourly.nldas(interp_img).eto)
         )
-        if resample_method and (resample_method.lower() in ['bilinear', 'bicubic']):
-            ratio = ratio.resample(resample_method)
-        etf_grass = etf.multiply(ratio)
     elif src_coll_id.upper() == 'ECMWF/ERA5_LAND/HOURLY':
         ratio = (
-            openet.refetgee.Hourly.era5_land(interp_img).etr
-            .divide(openet.refetgee.Hourly.era5_land(interp_img).eto)
+            openet.refetgee.Hourly.era5_land(interp_img, fill_edge_cells=2).etr
+            .divide(openet.refetgee.Hourly.era5_land(interp_img, fill_edge_cells=2).eto)
         )
-        if resample_method and (resample_method.lower() in ['bilinear', 'bicubic']):
-            ratio = ratio.resample(resample_method)
-        etf_grass = etf.multiply(ratio)
+    elif src_coll_id.lower() == 'projects/openet/assets/meteorology/urma/hawaii/hourly':
+        # Assume the source collection has ETo and ETr bands that can be used directly
+        ratio = interp_img.select(['ETR']).divide(interp_img.select(['ETO']))
 
-    return etf_grass
+    if resample_method and (resample_method.lower() in ['bilinear', 'bicubic']):
+        ratio = ratio.resample(resample_method)
+
+    return etf.multiply(ratio)

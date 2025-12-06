@@ -185,7 +185,7 @@ class Image:
         # The NLDAS hourly collection will be used if a source value is not set
         if (self.et_fraction_type.lower() == 'grass') and not et_fraction_grass_source:
             warnings.warn(
-                'NLDAS is being set as the default ET fraction grass adjustment source.  '
+                'NLDAS2 is being used as the default ET fraction grass adjustment source.  '
                 'In a future version the parameter will need to be set explicitly as: '
                 'et_fraction_grass_source="NASA/NLDAS/FORA0125_H002".',
                 FutureWarning
