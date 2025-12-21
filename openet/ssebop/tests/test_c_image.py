@@ -319,7 +319,7 @@ def test_Image_dt_source_exception():
         ['USGS/NLCD_RELEASES/2021_REL/NLCD/2021', TEST_POINT, 82],
         ['USGS/NLCD_RELEASES/2019_REL/NLCD/2019', TEST_POINT, 82],
         # CGM - Not sure why the 2019 collection doesn't work
-        # ['USGS/NLCD_RELEASES/2019_REL/NLCD', TEST_POINT, 1],
+        # ['USGS/NLCD_RELEASES/2019_REL/NLCD', TEST_POINT, 82],
     ]
 )
 def test_Image_landcover_source_default_values(lc_source, xy, expected):
@@ -585,10 +585,10 @@ def test_Image_from_landsat_c2_sr_lst_source_values():
 
 def test_Image_from_landsat_c2_sr_lst_source_missing():
     """Test that the LST is masked if the scene is not present in lst_source"""
-    # LST source collection is empty so that join will work but not join to anything
+    # LST source collection is set to an empty collection so that join will work but not join to anything
     image_id = 'LANDSAT/LC08/C02/T1_L2/LC08_031034_20160702'
     xy = (-102.08284, 37.81728)
-    lst_source = 'projects/openet/assets/lst/landsat/empty'
+    lst_source = 'projects/openet/assets/ssebop/ancillary/empty'
     output_img = ssebop.Image.from_landsat_c2_sr(image_id, lst_source=lst_source).lst
     output = utils.point_image_value(output_img, xy)
     assert output['lst'] is None
