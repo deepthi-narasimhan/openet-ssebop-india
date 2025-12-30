@@ -600,7 +600,7 @@ class Image:
     def mixed_landscape_tcold_smooth(self):
         """Here we take 4800m coarse tcold in ag areas and smooth it. Fill it with a scene-wide tcold."""
 
-        smooth_mixed_landscape_pre = (
+        self.smooth_mixed_landscape_pre = (
             self.Tc_coarse_high_ndvi
             .focalMean(1, 'square', 'pixels')
             .reproject(self.crs, self.coarse_transform)
@@ -608,23 +608,23 @@ class Image:
             .updateMask(1)
         )
 
-        smooth_filled_pre = (
-            smooth_mixed_landscape_pre
+        self.smooth_filled_pre = (
+            self.smooth_mixed_landscape_pre
             .unmask(self.Tc_scene)  # here we add the scene-wide constant.
             .reproject(self.crs, self.coarse_transform)
             .updateMask(1)
         )
 
         # double smooth to increase area...
-        smooth_filled = (
-            smooth_filled_pre
+        self.smooth_filled = (
+            self.smooth_filled_pre
             .focalMean(1, 'square', 'pixels')
             .reproject(self.crs, self.coarse_transform)
             .rename('lst')
             .updateMask(1)
         )
 
-        return smooth_filled
+        return self.smooth_filled
 
     @lazy_property
     def tc_ag(self):
