@@ -896,6 +896,7 @@ class Image:
         # max pixels argument for .reduceResolution()
         m_pixels_fine = 48  # We use 48 because for 240m-> (8**2) 64 pixels is not necessary and EECU is saved.
         m_pixels_coarse = (20**2)/2  # Doing every pixel would be (20**2) but half is probably fine.
+        m_pixels_test = 1e13
 
         lst = ee.Image(self.lst)
         ndvi = ee.Image(self.ndvi)
@@ -927,12 +928,15 @@ class Image:
             .reproject(self.crs, fine_transform)
             .updateMask(1)
         )
+        self.ndvi_fine_wmasked = ndvi_fine_wmasked
+
         lst_fine_wmasked = (
             lst_masked
             .reduceResolution(ee.Reducer.mean(), True, m_pixels_fine)
             .reproject(self.crs, fine_transform)
             .updateMask(1)
         )
+        self.lst_fine_wmasked = lst_fine_wmasked
 
         # ***** subsection creating NDVI at coarse resolution from only high NDVI pixels. *************
 
@@ -947,6 +951,7 @@ class Image:
             .reduceResolution(ee.Reducer.mean(), True, m_pixels_coarse)
             .reproject(self.crs, self.coarse_transform)
         )
+        self.coarse_masked_ndvi = coarse_masked_ndvi
 
         # Same process for LST
         lst_coarse_wmasked_high_ndvi = (
@@ -955,6 +960,8 @@ class Image:
             .reduceResolution(ee.Reducer.mean(), True, m_pixels_coarse)
             .reproject(self.crs, self.coarse_transform)
         )
+
+        self.lst_coarse_wmasked_high_ndvi = lst_coarse_wmasked_high_ndvi
 
         ## =======================================================================================
         ## FANO TCORR
@@ -971,6 +978,7 @@ class Image:
                 'lst': lst_fine_wmasked,
             }
         )
+        self.Tc_fine = Tc_fine
 
         self.Tc_coarse_high_ndvi = lst_coarse_wmasked_high_ndvi.expression(
             '(lst - (dt_coeff * dt * (ndvi_threshold - ndvi) * 10))',
@@ -985,7 +993,7 @@ class Image:
 
         Tc_supercoarse_high_ndvi_scalar = (
             Tc_fine
-            .reduceRegion(ee.Reducer.mean(), Tc_fine.geometry(), scale=240, bestEffort=True)
+            .reduceRegion(ee.Reducer.mean(), Tc_fine.geometry(), scale=240, bestEffort=True, maxPixels=m_pixels_coarse)
             .get('lst')
         )
 
@@ -1012,7 +1020,6 @@ class Image:
             .focalMean(5, 'square', 'pixels')
             .rename('lst')
         )
-
 
         # Tcold with edge-cases handled.
         return (
