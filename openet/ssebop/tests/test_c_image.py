@@ -506,16 +506,17 @@ def test_Image_from_landsat_c2_sr_lst_source_values():
     assert output_img.get('lst_source_id').getInfo().startswith(lst_source)
 
 
-def test_Image_from_landsat_c2_sr_lst_source_missing():
-    """Test that the LST is masked if the scene is not present in lst_source"""
-    # LST source collection is empty so that join will work but not join to anything
-    image_id = 'LANDSAT/LC08/C02/T1_L2/LC08_031034_20160702'
-    xy = (-102.08284, 37.81728)
-    lst_source = 'projects/openet/assets/lst/landsat/empty'
-    output_img = ssebop.Image.from_landsat_c2_sr(image_id, lst_source=lst_source).lst
-    output = utils.point_image_value(output_img, xy)
-    assert output['lst'] is None
-    assert output_img.get('lst_source_id').getInfo() == 'None'
+# # CGM - The empty LST asset does not seem to exist anymore, commenting out the test for now
+# def test_Image_from_landsat_c2_sr_lst_source_missing():
+#     """Test that the LST is masked if the scene is not present in lst_source"""
+#     # LST source collection is empty so that join will work but not join to anything
+#     image_id = 'LANDSAT/LC08/C02/T1_L2/LC08_031034_20160702'
+#     xy = (-102.08284, 37.81728)
+#     lst_source = 'projects/openet/assets/lst/landsat/empty'
+#     output_img = ssebop.Image.from_landsat_c2_sr(image_id, lst_source=lst_source).lst
+#     output = utils.point_image_value(output_img, xy)
+#     assert output['lst'] is None
+#     assert output_img.get('lst_source_id').getInfo() == 'None'
 
 
 # # DEADBEEF - Keep for now in case approach changes for handling missing scenes in LST source
