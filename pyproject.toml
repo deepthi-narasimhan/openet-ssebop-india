@@ -13,8 +13,7 @@ description = "Earth Engine implementation of the SSEBop model"
 readme = "README.rst"
 requires-python = ">=3.9"
 keywords = ["SSEBop", "OpenET", "Earth Engine", "Evapotranspiration", "Landsat"]
-license = { file = "LICENSE.txt" }
-# license = {text = "Apache-2.0"}
+license = {text = "Apache-2.0"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
