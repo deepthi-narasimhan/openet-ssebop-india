@@ -71,7 +71,7 @@ def default_image_args(
         lc_source=82,
         tcold_source=0.9744 * 310.15,
         et_fraction_type='alfalfa',
-        et_fraction_grass_source=None,
+        et_fraction_type_adjust_source=None,
         dt_resample='nearest',
         **kwargs,
 ):
@@ -85,7 +85,7 @@ def default_image_args(
         'lc_source': lc_source,
         'tcold_source': tcold_source,
         'et_fraction_type': et_fraction_type,
-        'et_fraction_grass_source': et_fraction_grass_source,
+        'et_fraction_type_adjust_source': et_fraction_type_adjust_source,
         'dt_resample': dt_resample,
     }
     return {**args, **kwargs}
@@ -105,7 +105,7 @@ def default_image_obj(
         lc_source=82,
         tcold_source=0.9744 * 310.15,
         et_fraction_type='alfalfa',
-        et_fraction_grass_source=None,
+        et_fraction_type_adjust_source=None,
         dt_resample='nearest',
         **kwargs,
 ):
@@ -122,7 +122,7 @@ def default_image_obj(
         lc_source=lc_source,
         tcold_source=tcold_source,
         et_fraction_type=et_fraction_type,
-        et_fraction_grass_source=et_fraction_grass_source,
+        et_fraction_type_adjust_source=et_fraction_type_adjust_source,
         dt_resample=dt_resample,
         **kwargs
     ))
@@ -139,7 +139,6 @@ def test_Image_init_default_parameters():
     assert m._lc_source == 'USGS/NLCD_RELEASES/2020_REL/NALCMS'
     assert m._tcold_source == 'FANO'
     assert m.et_fraction_type == 'alfalfa'
-    assert m.et_fraction_grass_source is None
     assert m._lst_source is None
     assert m._dt_resample == 'bilinear'
     assert m._C2_LST_CORRECT is True
@@ -697,34 +696,30 @@ def test_Image_from_landsat_c2_sr_et_fraction():
     assert output['properties']['system:index'] == image_id.split('/')[-1]
 
 
-# # Testing for the source not being set will be needed in a future version
-# #   when NLDAS is not set as the default source
-# def test_Image_et_fraction_type_grass_source_not_set():
-#     """Raise an exception if fraction type is grass but source is not set"""
-#     with pytest.raises(ValueError):
-#         utils.getinfo(default_image_obj(et_fraction_type='grass').et_fraction)
-#
-#
-# # Testing for the source not being set will be needed in a future version
-# #   when NLDAS is not set as the default source
-# def test_Image_et_fraction_type_grass_source_empty():
-#     """Raise an exception if fraction type is grass but source is not set"""
-#     with pytest.raises(ValueError):
-#         utils.getinfo(default_image_obj(
-#             et_fraction_type='grass', et_fraction_grass_source='').et_fraction)
+def test_Image_et_fraction_type_adjust_source_not_set():
+    """Raise an exception if fraction type is grass but source is not set"""
+    with pytest.raises(ValueError):
+        utils.getinfo(default_image_obj(et_fraction_type='grass').et_fraction)
 
 
-# # Checking if the source is "supported" is currently handled in the model.py function
-# #   and is probably redundant here, but leaving commented out code for now
-# def test_Image_et_fraction_type_grass_source_exception():
-#     """Raise an exception if fraction type is grass but source is not supported"""
-#     with pytest.raises(ValueError):
-#         utils.getinfo(default_image_obj(
-#             et_fraction_type='grass', et_fraction_grass_source='deadbeef').et_fraction)
+def test_Image_et_fraction_type_adjust_source_empty():
+    """Raise an exception if fraction type is grass but source is not set"""
+    with pytest.raises(ValueError):
+        utils.getinfo(default_image_obj(
+            et_fraction_type='grass', et_fraction_type_adjust_source='').et_fraction)
+
+
+# Checking if the source is "supported" is currently handled in the model.py function
+#   and is probably redundant here, but leaving commented out code for now
+def test_Image_et_fraction_type_grass_source_exception():
+    """Raise an exception if fraction type is grass but source is not supported"""
+    with pytest.raises(ValueError):
+        utils.getinfo(default_image_obj(
+            et_fraction_type='grass', et_fraction_type_adjust_source='deadbeef').et_fraction)
 
 
 @pytest.mark.parametrize(
-    'et_fraction_type, etf_grass_source, expected',
+    'et_fraction_type, et_fraction_type_adjust_source, expected',
     [
         ['alfalfa', None, 0.88],
         ['grass', 'NASA/NLDAS/FORA0125_H002', 0.88 * 1.24],
@@ -736,11 +731,10 @@ def test_Image_from_landsat_c2_sr_et_fraction():
         # ['grass', 'ECMWF/ERA5_LAND/HOURLY', 0.88 * 1.15],
     ]
 )
-def test_Image_et_fraction_type(et_fraction_type, etf_grass_source, expected, tol=0.01):
+def test_Image_et_fraction_type(et_fraction_type, et_fraction_type_adjust_source, expected, tol=0.01):
     output_img = default_image_obj(
-        dt_source=10, tcold_source=0.98 * 310,
-        et_fraction_type=et_fraction_type,
-        et_fraction_grass_source=etf_grass_source).et_fraction
+        dt_source=10, tcold_source=0.98 * 310, et_fraction_type=et_fraction_type,
+        et_fraction_type_adjust_source=et_fraction_type_adjust_source).et_fraction
     output = utils.point_image_value(ee.Image(output_img), TEST_POINT)
     assert abs(output['et_fraction'] - expected) <= tol
 

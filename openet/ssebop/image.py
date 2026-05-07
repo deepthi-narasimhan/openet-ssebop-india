@@ -42,15 +42,13 @@ class Image:
             image,
             et_reference_source=None,
             et_reference_band=None,
-            et_reference_factor=None,
             et_reference_resample=None,
             et_reference_date_type=None,
-            dt_source='projects/earthengine-legacy/assets/projects/usgs-ssebop/dt/daymet_median_v7',
             tcold_source='FANO',
-            et_fraction_type='alfalfa',
-            et_fraction_grass_source=None,
-            lst_source=None,
+            dt_source='projects/earthengine-legacy/assets/projects/usgs-ssebop/dt/daymet_median_v7',
             lc_source='USGS/NLCD_RELEASES/2020_REL/NALCMS',
+            et_fraction_type='alfalfa',
+            lst_source=None,
             **kwargs,
     ):
         """Construct a generic SSEBop Image
@@ -67,9 +65,6 @@ class Image:
         et_reference_band : str, optional
             Reference ET band name (the default is None).
             Parameter is required if computing 'et' or 'et_reference'.
-        et_reference_factor : float, None, optional
-            Reference ET scaling factor.  The default is None which is
-            equivalent to 1.0 (or no scaling).
         et_reference_resample : {'nearest', 'bilinear', 'bicubic', None}, optional
             Reference ET resampling.  The default is None which is equivalent
             to nearest neighbor resampling.
@@ -79,19 +74,6 @@ class Image:
         tcold_source : 'FANO' or float, optional
             Tcold source keyword.  The default is 'FANO' which will compute Tcold
             using the 'Forcing And Normalizing Operation' process.
-        et_fraction_type : {'alfalfa', 'grass'}, optional
-            ET fraction reference type.  The default is 'alfalfa'.
-            If set to "grass", the et_fraction_grass_source parameter must also be set.
-        et_fraction_grass_source : {'NASA/NLDAS/FORA0125_H002',
-                                    'ECMWF/ERA5_LAND/HOURLY'}, float, optional
-            Reference ET source for alfalfa to grass reference adjustment.
-            Parameter must be set if et_fraction_type is 'grass'.
-            The default is currently the NLDAS hourly collection,
-            but having a default will likely be removed in a future version.
-        lst_source : str, optional
-            Land surface temperature source image collection ID.
-            CGM - Add text detailing any properties, image names, band names, etc
-              that are required for the source image collection
         lc_source : {'USGS/NLCD_RELEASES/2020_REL/NALCMS',
                      'USGS/NLCD_RELEASES/2021_REL/NLCD',
                      'USGS/NLCD_RELEASES/2021_REL/NLCD/2021',
@@ -100,16 +82,40 @@ class Image:
             Landcover source image ID or image collection ID.
             Custom landcover sources can be used by setting the additional "lc_"
             keyword arguments listed below.
+        et_fraction_type : {'alfalfa', 'grass'}, optional
+            ET fraction reference type.  The default is 'alfalfa'.
+            If set to a "grass" type, some or all of the "et_fraction_type_adjust_"
+            keyword arguments listed below must also be set.
+        lst_source : str, optional
+            Land surface temperature source image collection ID.
+            CGM - Add text detailing any properties, image names, band names, etc
+              that are required for the source image collection
         kwargs : dict, optional
-            dt_resample : {'nearest', 'bilinear'}
-            lc_source_type : {'image'}
-                Landcover source asset type
+            dt_resample : {'bilinear', 'nearest'}, optional
+                Resampling method to apply to dT source.  The default is 'bilinear'.
+            et_reference_factor : float, None, optional
+                Reference ET scaling factor.  The default is None which is
+                equivalent to 1.0 (or no scaling).
             lc_source_band : str
-                Landcover source band name
+                Band in the custom landcover source containing landcover class values.
             lc_ag_classes : list of ints
-                Agricultural landcover classes
+                Agricultural landcover classes.
             lc_anom_classes : list of ints
-                Anomalous (barren, shrubland, urban, etc.) landcover classes
+                Anomalous (barren, shrubland, urban, etc.) landcover classes.
+            et_fraction_type_adjust_source : str or float
+                Hourly meteorology collection that will be used to convert the
+                output ET fraction values from an alfalfa to grass reference ET type.
+                Parameter must be set if et_fraction_type is set to 'grass'.
+                If source is not "NASA/NLDAS/FORA0125_H002" or "ECMWF/ERA5_LAND/HOURLY",
+                the alfalfa and grass reference ET bands will need to be set explicitly.
+            et_fraction_type_adjust_eto_band : str
+                Band in the et_fraction_type_adjust_source collection containing
+                the "grass" reference ET that will be used to convert the output
+                ET fraction values from an alfalfa to grass reference ET type.
+            et_fraction_type_adjust_etr_band : str
+                Band in the et_fraction_type_adjust_source collection containing
+                the "alfalfa" reference ET that will be used to convert the output
+                ET fraction values from an alfalfa to grass reference ET type.
 
         Notes
         -----
@@ -152,23 +158,33 @@ class Image:
         # Reference ET parameters
         self.et_reference_source = et_reference_source
         self.et_reference_band = et_reference_band
-        self.et_reference_factor = et_reference_factor
         self.et_reference_resample = et_reference_resample
         self.et_reference_date_type = et_reference_date_type
+        if 'et_reference_factor' in kwargs.keys():
+            self.et_reference_factor = kwargs['et_reference_factor']
+        else:
+            self.et_reference_factor = None
 
         # Check reference ET parameters
-        if et_reference_factor and not utils.is_number(et_reference_factor):
+        if self.et_reference_factor and not utils.is_number(self.et_reference_factor):
             raise ValueError('et_reference_factor must be a number')
-        if et_reference_factor and (self.et_reference_factor < 0):
+        if self.et_reference_factor and (self.et_reference_factor < 0):
             raise ValueError('et_reference_factor must be greater than zero')
+
         et_reference_resample_methods = ['nearest', 'bilinear', 'bicubic']
-        if (et_reference_resample and
-                (et_reference_resample.lower() not in et_reference_resample_methods)):
+        if (self.et_reference_resample and
+                (self.et_reference_resample.lower() not in et_reference_resample_methods)):
             raise ValueError('unsupported et_reference_resample method')
+
         et_reference_date_type_methods = ['doy', 'daily']
-        if (et_reference_date_type and
-                (et_reference_date_type.lower() not in et_reference_date_type_methods)):
+        if (self.et_reference_date_type and
+                (self.et_reference_date_type.lower() not in et_reference_date_type_methods)):
             raise ValueError('unsupported et_reference_date_type method')
+
+        # ET fraction type
+        if et_fraction_type.lower() not in ['alfalfa', 'grass']:
+            raise ValueError('et_fraction_type must "alfalfa" or "grass"')
+        self.et_fraction_type = et_fraction_type.lower()
 
         # Model input parameters
         self._dt_source = dt_source
@@ -176,35 +192,9 @@ class Image:
         self._lst_source = lst_source
         self._lc_source = lc_source
 
-        # ET fraction type
-        if et_fraction_type.lower() not in ['alfalfa', 'grass']:
-            raise ValueError('et_fraction_type must "alfalfa" or "grass"')
-        self.et_fraction_type = et_fraction_type.lower()
-
-        # ET fraction alfalfa to grass reference adjustment
-        # The NLDAS hourly collection will be used if a source value is not set
-        if (self.et_fraction_type.lower() == 'grass') and not et_fraction_grass_source:
-            warnings.warn(
-                'NLDAS2 is being used as the default ET fraction grass adjustment source.  '
-                'In a future version the parameter will need to be set explicitly as: '
-                'et_fraction_grass_source="NASA/NLDAS/FORA0125_H002".',
-                FutureWarning
-            )
-            et_fraction_grass_source = 'NASA/NLDAS/FORA0125_H002'
-        self.et_fraction_grass_source = et_fraction_grass_source
-        # if (self.et_fraction_type.lower() == 'grass') and not et_fraction_grass_source:
-        #     raise ValueError(
-        #         'et_fraction_grass_source parameter must be set if et_fraction_type==\'grass\''
-        #     )
-        # # Should the supported source values be checked here instead of in model.py?
-        # if et_fraction_grass_source not in et_fraction_grass_sources:
-        #     raise ValueError('unsupported et_fraction_grass_source')
-
         # Image projection and geotransform
         self.crs = image.projection().crs()
-        self.transform = ee.List(
-            ee.Dictionary(ee.Algorithms.Describe(image.projection())).get('transform')
-        )
+        self.transform = ee.List(ee.Dictionary(ee.Algorithms.Describe(image.projection())).get('transform'))
         # self.crs = image.select([0]).projection().getInfo()['crs']
         # self.transform = image.select([0]).projection().getInfo()['transform']
 
@@ -218,6 +208,27 @@ class Image:
             self._dt_resample = kwargs['dt_resample'].lower()
         else:
             self._dt_resample = 'bilinear'
+
+        # ET fraction alfalfa to grass reference adjustment parameters
+        if 'et_fraction_type_adjust_source' in kwargs.keys():
+            self.etf_type_adjust_source = kwargs['et_fraction_type_adjust_source']
+        else:
+            self.etf_type_adjust_source = None
+
+        if (self.et_fraction_type.lower() == 'grass') and not self.etf_type_adjust_source:
+            raise ValueError(
+                'et_fraction_type_adjust_source parameter must be set if et_fraction_type==\'grass\''
+            )
+
+        if 'et_fraction_type_adjust_eto_band' in kwargs.keys():
+            self.etf_type_adjust_eto_band = kwargs['et_fraction_type_adjust_eto_band']
+        else:
+            self.etf_type_adjust_eto_band = None
+
+        if 'et_fraction_type_adjust_etr_band' in kwargs.keys():
+            self.etf_type_adjust_etr_band = kwargs['et_fraction_type_adjust_etr_band']
+        else:
+            self.etf_type_adjust_etr_band = None
 
     def calculate(self, variables=['et', 'et_reference', 'et_fraction']):
         """Return a multiband image of calculated variables
@@ -267,18 +278,22 @@ class Image:
         et_fraction = model.et_fraction(lst=self.lst, tcold=self.tcold, dt=dt)
 
         # Convert the ET fraction to a grass reference fraction
-        if (self.et_fraction_type.lower() == 'grass') and self.et_fraction_grass_source:
-            if utils.is_number(self.et_fraction_grass_source):
-                et_fraction = et_fraction.multiply(self.et_fraction_grass_source)
+        if (self.et_fraction_type.lower() == 'grass') and self.etf_type_adjust_source:
+            if utils.is_number(self.etf_type_adjust_source):
+                et_fraction = et_fraction.multiply(self.etf_type_adjust_source)
             else:
                 et_fraction = model.etf_grass_type_adjust(
                     etf=et_fraction,
-                    src_coll_id=self.et_fraction_grass_source,
                     time_start=self._time_start,
+                    coll_id=self.etf_type_adjust_source,
+                    eto_band=self.etf_type_adjust_eto_band,
+                    etr_band=self.etf_type_adjust_etr_band,
                 )
 
-        return et_fraction.set(self._properties)\
+        return (
+            et_fraction.set(self._properties)
             .set({'et_fraction_type': self.et_fraction_type.lower()})
+        )
 
     @lazy_property
     def et_reference(self):
@@ -343,8 +358,7 @@ class Image:
     @lazy_property
     def et(self):
         """Actual ET as fraction of reference times reference ET"""
-        return self.et_fraction.multiply(self.et_reference)\
-            .rename(['et']).set(self._properties)
+        return self.et_fraction.multiply(self.et_reference).rename(['et']).set(self._properties)
 
     @lazy_property
     def lst(self):
