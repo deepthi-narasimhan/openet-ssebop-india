@@ -444,10 +444,12 @@ class Image:
         # .multiply(-1).distance(ee.Kernel.euclidean(buffersize)).lt(buffersize).unmask(0)
         # .Or(ee.Image(self.ndwi).lt(0))
 
+        #DN - changing code to use .Or(ee.Image(self.ndwi).gt(0.5)) in place of .Or(ee.Image(self.ndwi).lt(0))
+        #to demarcate water bodies from the NDWI now corrected as (green-nir)/(green+nir)
         return (
             ee.Image(self.qa_water_mask).eq(1)
             .Or(ee.Image(self.ndvi).lt(0))
-            .Or(ee.Image(self.ndwi).lt(0))
+            .Or(ee.Image(self.ndwi).gt(0.5))
             .And(self.gsw_max_mask)
             .Not()
             .rename(['tcold_not_water'])
