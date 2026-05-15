@@ -169,10 +169,12 @@ def ndwi(landsat_image):
     # Force the input values to be at greater than or equal to zero
     #   since C02 surface reflectance values can be negative
     #   but the normalizedDifference function will return nodata
-    ndwi_img = landsat_image.max(0).normalizedDifference(['swir1', 'green'])
+    # changed the ndwi_img = landsat_image.max(0).normalizedDifference(['swir1', 'green']) to now:
+    ndwi_img = landsat_image.max(0).normalizedDifference(['green', 'nir'])
 
-    b1 = landsat_image.select(['swir1'])
-    b2 = landsat_image.select(['green'])
+    #changed b1 and b2 corresponding bands as well following ndwi
+    b1 = landsat_image.select(['green'])
+    b2 = landsat_image.select(['nir'])
 
     # Assume that very high reflectance values are unreliable for computing the index
     #   and set the output value to 0
